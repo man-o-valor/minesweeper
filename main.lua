@@ -31,7 +31,8 @@ function love.load()
                  love.graphics
         .newQuad(TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 3, TILE_SIZE * 3, tileset:getDimensions()),
                  love.graphics
-        .newQuad(TILE_SIZE * 3, TILE_SIZE * 2, TILE_SIZE * 4, TILE_SIZE * 3, tileset:getDimensions())}
+        .newQuad(TILE_SIZE * 3, TILE_SIZE * 2, TILE_SIZE * 4, TILE_SIZE * 3, tileset:getDimensions()),
+                 love.graphics.newQuad(TILE_SIZE, TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2, tileset:getDimensions())}
     -- flag quad
     flagTile = love.graphics.newQuad(TILE_SIZE, 0, TILE_SIZE * 2, TILE_SIZE, tileset:getDimensions())
 
@@ -42,9 +43,39 @@ function love.load()
     end
 
     for ty = 0, TILES_PER_ROW * TILES_PER_ROW - 1 do
-        table.insert(mines, 0)
-        table.insert(hints, math.random(0, 8))
-        table.insert(boardDepth, math.random(0, 2))
+        if (math.random() < 0.15) then
+            table.insert(mines, true)
+        else
+            table.insert(mines, false)
+        end
+        table.insert(boardDepth, 1)
+        -- math.random(0, 2)
+    end
+    local totalTiles = TILES_PER_ROW * TILES_PER_ROW
+    for i = 1, totalTiles do
+        local idx0 = i - 1
+        local tx = idx0 % TILES_PER_ROW
+        local ty = math.floor(idx0 / TILES_PER_ROW)
+        local count = 0
+        for dy = -1, 1 do
+            for dx = -1, 1 do
+                if not (dx == 0 and dy == 0) then
+                    local nx = tx + dx
+                    local ny = ty + dy
+                    if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                        local nIndex = ny * TILES_PER_ROW + nx + 1
+                        if mines[nIndex] then
+                            count = count + 1
+                        end
+                    end
+                end
+            end
+        end
+        -- mine tiles get 9
+        if mines[i] then
+            count = 9
+        end
+        table.insert(hints, count)
     end
 end
 
@@ -68,7 +99,6 @@ function love.draw()
             elseif (boardDepth[tileId] == 1) then
                 love.graphics.draw(tileset, hintTiles[hints[tileId] + 1], x, y)
             end
-
         end
     end
     love.graphics.setCanvas()

@@ -6,11 +6,13 @@ local tileQuad
 local TILE_SIZE = 16
 local TILES_PER_ROW = 18
 local CANVAS_PIXELS = TILE_SIZE * TILES_PER_ROW
-local mineDensity = 16
+local mineDensity = 18
 local mines = {}
+local flags = {}
 local hints = {}
 local boardDepth = {}
 local hoverTx, hoverTy
+local newBoard, blankHints
 
 function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
@@ -70,6 +72,9 @@ function love.draw()
             elseif (boardDepth[tileId] == 1) then
                 love.graphics.draw(tileset, hintTiles[hints[tileId] + 1], x, y)
             end
+            if flags[tileId] then
+                love.graphics.draw(tileset, flagTile, x, y)
+            end
         end
     end
 
@@ -120,15 +125,11 @@ function love.update(dt)
 end
 
 function love.mousepressed(mx, my, button)
-    -- left click only
-    if button ~= 1 then
-        return
-    end
-
     -- compute canvas position on screen
     local windowW, windowH = love.graphics.getDimensions()
     local screenX = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
     local screenY = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
+    local tileId
 
     -- check if click inside canvas area
     if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY +
@@ -151,15 +152,37 @@ function love.mousepressed(mx, my, button)
             ty = TILES_PER_ROW - 1
         end
 
-        local tileId = ty * TILES_PER_ROW + tx + 1
-        if boardDepth[tileId] then
-            boardDepth[tileId] = 1
+        tileId = ty * TILES_PER_ROW + tx + 1
+    end
+    if tileId ~= nil then
+        if button ~= 1 then
+            if not newBoard then
+                -- flag
+                flags[tileId] = not flags[tileId]
+            end
+        else
+            -- dig
+            if not flags[tileId] then
+                if newBoard then
+                    makeBoard()
+                end
+                while blankHints < 6 and newBoard do
+                    makeBoard()
+                    boardFlood(tileId)
+                end
+                boardDepth[tileId] = 1
+                if not newBoard then
+                    boardFlood(tileId)
+                end
+                newBoard = false
+            end
         end
-        boardFlood(tileId)
     end
 end
 
 function makeBoard()
+    newBoard = true
+    blankHints = 0
     mines = {}
     hints = {}
     for ty = 0, TILES_PER_ROW * TILES_PER_ROW - 1 do
@@ -168,6 +191,7 @@ function makeBoard()
         else
             table.insert(mines, false)
         end
+        table.insert(flags, false)
     end
     local totalTiles = TILES_PER_ROW * TILES_PER_ROW
     for i = 1, totalTiles do
@@ -199,44 +223,33 @@ end
 
 function boardFlood(id)
     if hints[id] == 0 then
-        boardFloodStep(id,0)
-        --[[local tx = (id - 1) % TILES_PER_ROW
-        local ty = math.floor((id - 1) / TILES_PER_ROW)
-        for dy = -1, 1 do
-            for dx = -1, 1 do
-                local nx = tx + dx
-                local ny = ty + dy
-                if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
-                    local nIndex = ny * TILES_PER_ROW + nx + 1
-                    if hints[nIndex] == 0 then
-                        boardFloodStep(nIndex)
-                    end
-                end
-            end
-        end]]
+        local new = boardFloodStep(id, 0)
     end
 end
 
-function boardFloodStep(id,layers)
-    if layers>8 then
-        return
+function boardFloodStep(id, layers)
+    if layers > 9 then -- don't overflow!
+        return nIndex
     end
     local tx = (id - 1) % TILES_PER_ROW
     local ty = math.floor((id - 1) / TILES_PER_ROW)
     local count = 0
+    local nIndex
     for dy = -1, 1 do
         for dx = -1, 1 do
             local nx = tx + dx
             local ny = ty + dy
             if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
-                local nIndex = ny * TILES_PER_ROW + nx + 1
+                nIndex = ny * TILES_PER_ROW + nx + 1
                 boardDepth[nIndex] = 1
                 if hints[nIndex] == 0 then
-                    boardFloodStep(nIndex,layers+1)
+                    blankHints = blankHints + 1
+                    boardFloodStep(nIndex, layers + 1)
                 end
             end
         end
     end
+    return nIndex
 end
 
 return CANVAS_PIXELS

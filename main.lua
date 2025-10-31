@@ -87,7 +87,8 @@ function love.draw()
 
     for i = 1, #particles do
         local particle = particles[i]
-        love.graphics.draw(tileset, particle.sprite, particle.x, particle.y)
+        love.graphics.draw(tileset, particle.sprite, particle.x, particle.y, particle.rot / 10,
+            1 - (particle.age / particle.life), 1 - (particle.age / particle.life), 8, 8)
     end
 
     love.graphics.setCanvas()
@@ -136,15 +137,16 @@ function love.mousepressed(mx, my, button)
     local windowW, windowH = love.graphics.getDimensions()
     local screenX = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
     local screenY = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
+    local localX, localY, tx, ty
     local tileId
 
     -- check if click inside canvas area
     if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY +
         (CANVAS_PIXELS * scale) then
-        local localX = math.floor((mx - screenX) / scale)
-        local localY = math.floor((my - screenY) / scale)
-        local tx = math.floor(localX / TILE_SIZE)
-        local ty = math.floor(localY / TILE_SIZE)
+        localX = math.floor((mx - screenX) / scale)
+        localY = math.floor((my - screenY) / scale)
+        tx = math.floor(localX / TILE_SIZE)
+        ty = math.floor(localY / TILE_SIZE)
         -- clamp to board
         if tx < 0 then
             tx = 0
@@ -160,17 +162,19 @@ function love.mousepressed(mx, my, button)
         end
 
         tileId = ty * TILES_PER_ROW + tx + 1
-        newParticle(localX, localY, flagTile)
     end
     if tileId ~= nil then
         if button ~= 1 then
             if not newBoard and boardDepth[tileId] == 2 then
                 -- flag
                 flags[tileId] = not flags[tileId]
+                if not flags[tileId] then
+                    newParticle(tx * TILE_SIZE + 8, ty * TILE_SIZE + 8, flagTile)
+                end
             end
         else
             -- dig
-            if not flags[tileId] then
+            if not flags[tileId] and boardDepth[tileId] == 2 then
                 if newBoard then
                     makeBoard()
                 end
@@ -179,6 +183,7 @@ function love.mousepressed(mx, my, button)
                     boardFlood(tileId)
                 end
                 boardDepth[tileId] = 1
+                newParticle(tx * TILE_SIZE + 8, ty * TILE_SIZE + 8, coverTile)
                 if not newBoard then
                     boardFlood(tileId)
                 end
@@ -249,7 +254,10 @@ function boardFloodStep(id, layers)
             local ny = ty + dy
             if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
                 nIndex = ny * TILES_PER_ROW + nx + 1
-                boardDepth[nIndex] = 1
+                if boardDepth[nIndex] == 2 then
+                    newParticle(nx * TILE_SIZE + 8, ny * TILE_SIZE + 8, coverTile)
+                    boardDepth[nIndex] = 1
+                end
                 if hints[nIndex] == 0 then
                     blankHints = blankHints + 1
                     boardFloodStep(nIndex, layers + 1)
@@ -269,23 +277,26 @@ function newParticle(x, y, sprite)
 
     particle.life = math.random(6, 15) * 30
     particle.age = 0
-    particle.vx = math.random(-20, 20)/50
-    particle.vy = math.random(-40, 0)/50
-    particle.vr = math.random(-10, 10)
+    particle.vx = math.random(-5, 5) / 50
+    particle.vy = math.random(-20, 0) / 50
+    particle.vr = math.random(-5, 5) / 50
     table.insert(particles, particle)
 end
 
 function handleParticles()
     for i = 1, #particles do
-        local particle = particles[i]
-        particle.age = particle.age + 1
-        if (particle.age > particle.life) then
-            -- remove particle? Idk how
-        else
-            particle.x = particle.x + particle.vx
-            particle.y = particle.y + particle.vy
-            particle.rot = particle.rot + particle.vr
-            particle.vy = particle.vy + 0.01 -- gravity
+        if particles[i] then
+            local particle = particles[i]
+            particle.age = particle.age + 1
+            if (particle.age > particle.life) then
+                table.remove(particles, i)
+                i = i - 1
+            else
+                particle.x = particle.x + particle.vx
+                particle.y = particle.y + particle.vy
+                particle.rot = particle.rot + particle.vr
+                particle.vy = particle.vy + 0.005 -- gravity
+            end
         end
     end
 end

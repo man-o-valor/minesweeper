@@ -6,6 +6,7 @@ local tileQuad
 local TILE_SIZE = 16
 local TILES_PER_ROW = 18
 local CANVAS_PIXELS = TILE_SIZE * TILES_PER_ROW
+local mineDensity = 16
 local mines = {}
 local hints = {}
 local boardDepth = {}
@@ -120,7 +121,9 @@ end
 
 function love.mousepressed(mx, my, button)
     -- left click only
-    if button ~= 1 then return end
+    if button ~= 1 then
+        return
+    end
 
     -- compute canvas position on screen
     local windowW, windowH = love.graphics.getDimensions()
@@ -128,21 +131,31 @@ function love.mousepressed(mx, my, button)
     local screenY = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
 
     -- check if click inside canvas area
-    if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY + (CANVAS_PIXELS * scale) then
+    if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY +
+        (CANVAS_PIXELS * scale) then
         local localX = math.floor((mx - screenX) / scale)
         local localY = math.floor((my - screenY) / scale)
         local tx = math.floor(localX / TILE_SIZE)
         local ty = math.floor(localY / TILE_SIZE)
         -- clamp to board
-        if tx < 0 then tx = 0 end
-        if tx >= TILES_PER_ROW then tx = TILES_PER_ROW - 1 end
-        if ty < 0 then ty = 0 end
-        if ty >= TILES_PER_ROW then ty = TILES_PER_ROW - 1 end
+        if tx < 0 then
+            tx = 0
+        end
+        if tx >= TILES_PER_ROW then
+            tx = TILES_PER_ROW - 1
+        end
+        if ty < 0 then
+            ty = 0
+        end
+        if ty >= TILES_PER_ROW then
+            ty = TILES_PER_ROW - 1
+        end
 
         local tileId = ty * TILES_PER_ROW + tx + 1
         if boardDepth[tileId] then
-            boardDepth[tileId] = math.max(0, boardDepth[tileId] - 1)
+            boardDepth[tileId] = 1
         end
+        boardFlood(tileId)
     end
 end
 
@@ -150,7 +163,7 @@ function makeBoard()
     mines = {}
     hints = {}
     for ty = 0, TILES_PER_ROW * TILES_PER_ROW - 1 do
-        if (math.random() < 0.15) then
+        if (math.random() < mineDensity / 100) then
             table.insert(mines, true)
         else
             table.insert(mines, false)
@@ -181,6 +194,48 @@ function makeBoard()
             count = 9
         end
         table.insert(hints, count)
+    end
+end
+
+function boardFlood(id)
+    if hints[id] == 0 then
+        boardFloodStep(id,0)
+        --[[local tx = (id - 1) % TILES_PER_ROW
+        local ty = math.floor((id - 1) / TILES_PER_ROW)
+        for dy = -1, 1 do
+            for dx = -1, 1 do
+                local nx = tx + dx
+                local ny = ty + dy
+                if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                    local nIndex = ny * TILES_PER_ROW + nx + 1
+                    if hints[nIndex] == 0 then
+                        boardFloodStep(nIndex)
+                    end
+                end
+            end
+        end]]
+    end
+end
+
+function boardFloodStep(id,layers)
+    if layers>8 then
+        return
+    end
+    local tx = (id - 1) % TILES_PER_ROW
+    local ty = math.floor((id - 1) / TILES_PER_ROW)
+    local count = 0
+    for dy = -1, 1 do
+        for dx = -1, 1 do
+            local nx = tx + dx
+            local ny = ty + dy
+            if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                local nIndex = ny * TILES_PER_ROW + nx + 1
+                boardDepth[nIndex] = 1
+                if hints[nIndex] == 0 then
+                    boardFloodStep(nIndex,layers+1)
+                end
+            end
+        end
     end
 end
 

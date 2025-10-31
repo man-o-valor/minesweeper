@@ -14,11 +14,14 @@ local boardDepth = {}
 local hoverTx, hoverTy
 local newBoard, blankHints
 local particles = {}
+local shakeX, shakeY = 0, 0
+local shakeLength, shakeLife, shakeStrength = 0, 0, 0
+local digShakeCount = 0
 
 function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
     gameCanvas = love.graphics.newCanvas(CANVAS_PIXELS, CANVAS_PIXELS)
-    gameCanvas:setFilter('nearest', 'nearest')
+    -- gameCanvas:setFilter('nearest', 'nearest')
     tileset = love.graphics.newImage('assets/minesweeper.png')
     tileset:setFilter('nearest', 'nearest')
 
@@ -96,7 +99,8 @@ function love.draw()
     local windowW, windowH = love.graphics.getDimensions()
     local x = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
     local y = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
-    love.graphics.draw(gameCanvas, x, y, 0, scale, scale)
+    -- apply shake offsets when drawing canvas to screen
+    love.graphics.draw(gameCanvas, x + shakeX, y + shakeY, 0, scale, scale)
 end
 
 function love.update(dt)
@@ -130,6 +134,8 @@ function love.update(dt)
     end
     -- mouse hover end
     handleParticles()
+    -- handle shake
+    handleScreenShake()
 end
 
 function love.mousepressed(mx, my, button)
@@ -236,7 +242,7 @@ end
 
 function boardFlood(id)
     if hints[id] == 0 then
-        local new = boardFloodStep(id, 0)
+        boardFloodStep(id, 0)
     end
 end
 
@@ -257,6 +263,7 @@ function boardFloodStep(id, layers)
                 if boardDepth[nIndex] == 2 then
                     newParticle(nx * TILE_SIZE + 8, ny * TILE_SIZE + 8, coverTile)
                     boardDepth[nIndex] = 1
+                    digShakeCount = digShakeCount + 1
                 end
                 if hints[nIndex] == 0 then
                     blankHints = blankHints + 1
@@ -298,6 +305,26 @@ function handleParticles()
                 particle.vy = particle.vy + 0.005 -- gravity
             end
         end
+    end
+end
+
+function handleScreenShake()
+    if digShakeCount > 0 then
+        shakeLength = 120
+        shakeLife = 0
+        shakeStrength = math.ceil(digShakeCount / 5)
+        digShakeCount = 0
+    end
+    if shakeLife < shakeLength then
+        shakeX = math.random(-1 * shakeStrength * (1 - (shakeLife / shakeLength)),
+            shakeStrength * (1 - (shakeLife / shakeLength)))
+        shakeY = math.random(-1 * shakeStrength * (1 - (shakeLife / shakeLength)),
+            shakeStrength * (1 - (shakeLife / shakeLength)))
+        shakeLife = shakeLife + 1
+    else
+        shakeX = 0
+        shakeY = 0
+        shakeStrength = 0
     end
 end
 

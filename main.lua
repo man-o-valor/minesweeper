@@ -3,9 +3,9 @@ local gameCanvas
 local scale = 1
 local tileset
 local tileQuad
-local TILE_SIZE = 16
+local TSIZE = 16
 local TILES_PER_ROW = 18
-local CANVAS_PIXELS = TILE_SIZE * TILES_PER_ROW
+local CANVAS_PIXELS = TSIZE * TILES_PER_ROW
 local mineDensity = 18
 local mines = {}
 local flags = {}
@@ -26,23 +26,20 @@ function love.load()
     tileset:setFilter('nearest', 'nearest')
 
     -- covering tile quad
-    coverTile = love.graphics.newQuad(0, 0, TILE_SIZE, TILE_SIZE, tileset:getDimensions())
+    coverTile = love.graphics.newQuad(0, 0, TSIZE, TSIZE, tileset:getDimensions())
     -- hint quads
-    hintTiles = {love.graphics.newQuad(TILE_SIZE * 4, TILE_SIZE * 2, TILE_SIZE * 5, TILE_SIZE * 3,
-        tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE * 2, 0, TILE_SIZE * 3, TILE_SIZE, tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE * 3, 0, TILE_SIZE * 4, TILE_SIZE, tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE * 4, 0, TILE_SIZE * 5, TILE_SIZE, tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE * 2, TILE_SIZE, TILE_SIZE * 3, TILE_SIZE * 2, tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE * 3, TILE_SIZE, TILE_SIZE * 4, TILE_SIZE * 2, tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE * 4, TILE_SIZE, TILE_SIZE * 5, TILE_SIZE * 2, tileset:getDimensions()),
-                 love.graphics
-        .newQuad(TILE_SIZE * 2, TILE_SIZE * 2, TILE_SIZE * 3, TILE_SIZE * 3, tileset:getDimensions()),
-                 love.graphics
-        .newQuad(TILE_SIZE * 3, TILE_SIZE * 2, TILE_SIZE * 4, TILE_SIZE * 3, tileset:getDimensions()),
-                 love.graphics.newQuad(TILE_SIZE, TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2, tileset:getDimensions())}
+    hintTiles = {love.graphics.newQuad(TSIZE * 4, TSIZE * 2, TSIZE * 5, TSIZE * 3, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 2, 0, TSIZE * 3, TSIZE, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 3, 0, TSIZE * 4, TSIZE, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 4, 0, TSIZE * 5, TSIZE, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 2, TSIZE, TSIZE * 3, TSIZE * 2, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 3, TSIZE, TSIZE * 4, TSIZE * 2, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 4, TSIZE, TSIZE * 5, TSIZE * 2, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 2, TSIZE * 2, TSIZE * 3, TSIZE * 3, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE * 3, TSIZE * 2, TSIZE * 4, TSIZE * 3, tileset:getDimensions()),
+                 love.graphics.newQuad(TSIZE, TSIZE, TSIZE * 2, TSIZE * 2, tileset:getDimensions())}
     -- flag quad
-    flagTile = love.graphics.newQuad(TILE_SIZE, 0, TILE_SIZE, TILE_SIZE, tileset:getDimensions())
+    flagTile = love.graphics.newQuad(TSIZE, 0, TSIZE, TSIZE, tileset:getDimensions())
 
     local windowW, windowH = love.graphics.getDimensions()
     scale = math.min(math.floor(windowW / CANVAS_PIXELS), math.floor(windowH / CANVAS_PIXELS))
@@ -53,6 +50,21 @@ function love.load()
     for ty = 0, TILES_PER_ROW * TILES_PER_ROW - 1 do
         table.insert(boardDepth, 2)
     end
+
+    digsound = love.audio.newSource("assets/dig.wav", "static")
+    bigdigsound = love.audio.newSource("assets/bigdig.wav", "static")
+    flagsound = love.audio.newSource("assets/flag.wav", "static")
+    unflagsound = love.audio.newSource("assets/unflag.wav", "static")
+
+    hintsounds = {love.audio.newSource("assets/reveal1.wav", "static"),
+                  love.audio.newSource("assets/reveal2.wav", "static"),
+                  love.audio.newSource("assets/reveal3.wav", "static"),
+                  love.audio.newSource("assets/reveal4.wav", "static"),
+                  love.audio.newSource("assets/reveal5.wav", "static"),
+                  love.audio.newSource("assets/reveal6.wav", "static"),
+                  love.audio.newSource("assets/reveal7.wav", "static"),
+                  love.audio.newSource("assets/reveal8.wav", "static")}
+
     makeBoard()
 end
 
@@ -68,8 +80,8 @@ function love.draw()
     love.graphics.setCanvas(gameCanvas)
     for ty = 0, TILES_PER_ROW - 1 do
         for tx = 0, TILES_PER_ROW - 1 do
-            local x = tx * TILE_SIZE
-            local y = ty * TILE_SIZE
+            local x = tx * TSIZE
+            local y = ty * TSIZE
             local tileId = ty * TILES_PER_ROW + tx + 1
             if (boardDepth[tileId] == 2) then
                 love.graphics.draw(tileset, coverTile, x, y)
@@ -84,7 +96,7 @@ function love.draw()
 
     if hoverTx and hoverTy then
         love.graphics.setColor(1, 1, 1, 0.40)
-        love.graphics.rectangle('fill', hoverTx * TILE_SIZE, hoverTy * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        love.graphics.rectangle('fill', hoverTx * TSIZE, hoverTy * TSIZE, TSIZE, TSIZE)
         love.graphics.setColor(1, 1, 1, 1)
     end
 
@@ -114,8 +126,8 @@ function love.update(dt)
         (CANVAS_PIXELS * scale) then
         local localX = math.floor((mx - screenX) / scale)
         local localY = math.floor((my - screenY) / scale)
-        hoverTx = math.floor(localX / TILE_SIZE)
-        hoverTy = math.floor(localY / TILE_SIZE)
+        hoverTx = math.floor(localX / TSIZE)
+        hoverTy = math.floor(localY / TSIZE)
         if hoverTx < 0 then
             hoverTx = 0
         end
@@ -151,8 +163,8 @@ function love.mousepressed(mx, my, button)
         (CANVAS_PIXELS * scale) then
         localX = math.floor((mx - screenX) / scale)
         localY = math.floor((my - screenY) / scale)
-        tx = math.floor(localX / TILE_SIZE)
-        ty = math.floor(localY / TILE_SIZE)
+        tx = math.floor(localX / TSIZE)
+        ty = math.floor(localY / TSIZE)
         -- clamp to board
         if tx < 0 then
             tx = 0
@@ -175,7 +187,14 @@ function love.mousepressed(mx, my, button)
                 -- flag
                 flags[tileId] = not flags[tileId]
                 if not flags[tileId] then
-                    newParticle(tx * TILE_SIZE + 8, ty * TILE_SIZE + 8, flagTile)
+                    newParticle(tx * TSIZE + 8, ty * TSIZE + 8, flagTile)
+                    local sfx = unflagsound:clone()
+                    sfx:setPitch(math.random(80, 120) / 100)
+                    sfx:play()
+                else
+                    local sfx = flagsound:clone()
+                    sfx:setPitch(math.random(80, 120) / 100)
+                    sfx:play()
                 end
             end
         else
@@ -189,11 +208,76 @@ function love.mousepressed(mx, my, button)
                     boardFlood(tileId)
                 end
                 boardDepth[tileId] = 1
-                newParticle(tx * TILE_SIZE + 8, ty * TILE_SIZE + 8, coverTile)
+                newParticle(tx * TSIZE + 8, ty * TSIZE + 8, coverTile)
                 if not newBoard then
                     boardFlood(tileId)
                 end
                 newBoard = false
+                if (digShakeCount > 2) then
+                    local sfx = bigdigsound:clone()
+                    sfx:setPitch(math.random(80, 120) / 100)
+                    sfx:play()
+                else
+                    local sfx = digsound:clone()
+                    sfx:setPitch(math.random(80, 120) / 100)
+                    sfx:play()
+                end
+                if hints[tileId] > 0 and hints[tileId] < 9 then
+                    local sfx = hintsounds[hints[tileId]]:clone()
+                    sfx:play()
+                end
+            elseif boardDepth[tileId] == 1 and hints[tileId] >= 1 and hints[tileId] < 9 then
+                -- chord: if enough flags are placed around a revealed hint tile, reveal all unflagged covered neighbors
+                local needed = hints[tileId]
+                local flagCount = 0
+                local tx = (tileId - 1) % TILES_PER_ROW
+                local ty = math.floor((tileId - 1) / TILES_PER_ROW)
+                for dy = -1, 1 do
+                    for dx = -1, 1 do
+                        if not (dx == 0 and dy == 0) then
+                            local nx = tx + dx
+                            local ny = ty + dy
+                            if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                                local nId = ny * TILES_PER_ROW + nx + 1
+                                if flags[nId] then
+                                    flagCount = flagCount + 1
+                                end
+                            end
+                        end
+                    end
+                end
+                local digsoundflag = false
+                if flagCount >= needed then
+                    for dy = -1, 1 do
+                        for dx = -1, 1 do
+                            if not (dx == 0 and dy == 0) then
+                                local nx = tx + dx
+                                local ny = ty + dy
+                                if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                                    local nId = ny * TILES_PER_ROW + nx + 1
+                                    if not flags[nId] and boardDepth[nId] == 2 then
+                                        boardDepth[nId] = 1
+                                        newParticle(nx * TSIZE + 8, ny * TSIZE + 8, coverTile)
+
+                                        if hints[nId] == 0 then
+                                            boardFlood(nId)
+                                        end
+                                        if hints[nId] > 0 and hints[nId] < 9 then
+                                            local sfx = hintsounds[hints[nId]]:clone()
+                                            sfx:play()
+                                            digsoundflag = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    if (digsoundflag) then
+                        local sfx = digsound:clone()
+                        sfx:setPitch(math.random(80, 120) / 100)
+                        sfx:play()
+                    end
+                end
             end
         end
     end
@@ -261,7 +345,7 @@ function boardFloodStep(id, layers)
             if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
                 nIndex = ny * TILES_PER_ROW + nx + 1
                 if boardDepth[nIndex] == 2 then
-                    newParticle(nx * TILE_SIZE + 8, ny * TILE_SIZE + 8, coverTile)
+                    newParticle(nx * TSIZE + 8, ny * TSIZE + 8, coverTile)
                     boardDepth[nIndex] = 1
                     digShakeCount = digShakeCount + 1
                 end

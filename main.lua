@@ -13,6 +13,7 @@ local hints = {}
 local boardDepth = {}
 local hoverTx, hoverTy
 local newBoard, blankHints
+local particles = {}
 
 function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
@@ -38,7 +39,7 @@ function love.load()
         .newQuad(TILE_SIZE * 3, TILE_SIZE * 2, TILE_SIZE * 4, TILE_SIZE * 3, tileset:getDimensions()),
                  love.graphics.newQuad(TILE_SIZE, TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2, tileset:getDimensions())}
     -- flag quad
-    flagTile = love.graphics.newQuad(TILE_SIZE, 0, TILE_SIZE * 2, TILE_SIZE, tileset:getDimensions())
+    flagTile = love.graphics.newQuad(TILE_SIZE, 0, TILE_SIZE, TILE_SIZE, tileset:getDimensions())
 
     local windowW, windowH = love.graphics.getDimensions()
     scale = math.min(math.floor(windowW / CANVAS_PIXELS), math.floor(windowH / CANVAS_PIXELS))
@@ -84,6 +85,11 @@ function love.draw()
         love.graphics.setColor(1, 1, 1, 1)
     end
 
+    for i = 1, #particles do
+        local particle = particles[i]
+        love.graphics.draw(tileset, particle.sprite, particle.x, particle.y)
+    end
+
     love.graphics.setCanvas()
 
     local windowW, windowH = love.graphics.getDimensions()
@@ -122,6 +128,7 @@ function love.update(dt)
         hoverTy = nil
     end
     -- mouse hover end
+    handleParticles()
 end
 
 function love.mousepressed(mx, my, button)
@@ -153,10 +160,11 @@ function love.mousepressed(mx, my, button)
         end
 
         tileId = ty * TILES_PER_ROW + tx + 1
+        newParticle(localX, localY, flagTile)
     end
     if tileId ~= nil then
         if button ~= 1 then
-            if not newBoard then
+            if not newBoard and boardDepth[tileId] == 2 then
                 -- flag
                 flags[tileId] = not flags[tileId]
             end
@@ -250,6 +258,36 @@ function boardFloodStep(id, layers)
         end
     end
     return nIndex
+end
+
+function newParticle(x, y, sprite)
+    local particle = {}
+    particle.x = x
+    particle.y = y
+    particle.rot = 0
+    particle.sprite = sprite
+
+    particle.life = math.random(6, 15) * 30
+    particle.age = 0
+    particle.vx = math.random(-20, 20)/50
+    particle.vy = math.random(-40, 0)/50
+    particle.vr = math.random(-10, 10)
+    table.insert(particles, particle)
+end
+
+function handleParticles()
+    for i = 1, #particles do
+        local particle = particles[i]
+        particle.age = particle.age + 1
+        if (particle.age > particle.life) then
+            -- remove particle? Idk how
+        else
+            particle.x = particle.x + particle.vx
+            particle.y = particle.y + particle.vy
+            particle.rot = particle.rot + particle.vr
+            particle.vy = particle.vy + 0.01 -- gravity
+        end
+    end
 end
 
 return CANVAS_PIXELS

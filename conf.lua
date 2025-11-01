@@ -8,7 +8,8 @@ function love.conf(t)
     t.window.minheight = 288
     t.window.title = "Minesweeper"
 
-    -- Enable integer scaling (pixel perfect)
     t.window.highdpi = false
     t.window.usedpiscale = false
+
+    t.window.vsync = false
 end

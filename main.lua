@@ -24,6 +24,7 @@ local timeSinceEnd = 0
 local gameEndState = "playing"
 
 function love.load()
+    math.randomseed(os.time())
     love.graphics.setDefaultFilter('nearest', 'nearest')
     gameCanvas = love.graphics.newCanvas(CANVAS_PIXELS, CANVAS_PIXELS)
     staticCanvas = love.graphics.newCanvas(CANVAS_PIXELS, CANVAS_PIXELS)
@@ -99,7 +100,28 @@ function love.load()
     love.graphics.newQuad(TSIZE * 5, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- P
     love.graphics.newQuad(TSIZE * 6, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- R
     love.graphics.newQuad(TSIZE * 7, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- T
-    love.graphics.newQuad(TSIZE * 5, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions())} -- A
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()), -- A
+    love.graphics.newQuad(TSIZE * 4, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions())} -- !
+
+    grassTiles = {love.graphics.newQuad(TSIZE * 0, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
+                  love.graphics.newQuad(TSIZE * 1, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
+                  love.graphics.newQuad(TSIZE * 2, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
+                  love.graphics.newQuad(TSIZE * 3, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions())}
+    flowerTiles = {love.graphics.newQuad(TSIZE * 0, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 1, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 2, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 3, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 0, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 1, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 2, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 3, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 0, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 1, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 2, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 3, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions())}
 
     local windowW, windowH = love.graphics.getDimensions()
     scale = math.min(math.floor(windowW / CANVAS_PIXELS), math.floor(windowH / CANVAS_PIXELS))
@@ -124,6 +146,9 @@ function love.load()
                   love.audio.newSource("assets/reveal7.wav", "static"),
                   love.audio.newSource("assets/reveal8.wav", "static")}
     explodesound = love.audio.newSource("assets/explosion.wav", "static")
+    winsound = love.audio.newSource("assets/win.wav", "static")
+    bannersound = love.audio.newSource("assets/banner.wav", "static")
+    glitch = love.audio.newSource("assets/glitch.wav", "stream")
 
     makeBoard()
 end
@@ -199,6 +224,19 @@ function love.draw()
                 if flags[tileId] then
                     love.graphics.draw(tileset, flagTile, x, y)
                 end
+                if gameEndState == "won" and 2 * tx - ty + TILES_PER_ROW < (timeSinceEnd / 15) -
+                    ((3 * tx - 37 * ty) % 4 - 2) then
+                    local hash = math.floor(math.min(math.floor((timeSinceEnd / 15) - ((3 * tx - 37 * ty) % 4 - 2)) -
+                                                         (2 * tx - ty + TILES_PER_ROW), 7) / 2) + 1
+                    love.graphics.draw(tileset, grassTiles[hash], x, y)
+                    if mines[tileId] then
+                        if (tx + ty + math.floor(timeSinceEnd / 60)) % 2 == 1 then
+                            hash = hash + 1
+                        end
+                        hash = hash + ((tx + ty) % 3) * 5
+                        love.graphics.draw(tileset, flowerTiles[hash], x, y)
+                    end
+                end
             end
         end
     end
@@ -228,28 +266,48 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[4], TSIZE * 8, TSIZE * 2)
         love.graphics.draw(tileset, letterTiles[5], TSIZE * 9, TSIZE * 2)
         love.graphics.draw(tileset, letterTiles[8], TSIZE * 10, TSIZE * 2)
-        if timeSinceEnd > 720 then
-            love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
-            love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
-            love.graphics.draw(tileset, bannerTiles[3], TSIZE * 4, TSIZE * 15, 0, 10, 2)
-            love.graphics.draw(tileset, bannerTiles[4], TSIZE * 14, TSIZE * 15)
-            love.graphics.draw(tileset, bannerTiles[5], TSIZE * 14, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[10], TSIZE * 5.5, TSIZE * 15)
-            love.graphics.draw(tileset, letterTiles[11], TSIZE * 6.5, TSIZE * 15)
-            love.graphics.draw(tileset, letterTiles[8], TSIZE * 7.5, TSIZE * 15)
-            love.graphics.draw(tileset, letterTiles[5], TSIZE * 8.5, TSIZE * 15)
-            love.graphics.draw(tileset, letterTiles[5], TSIZE * 9.5, TSIZE * 15)
-            love.graphics.draw(tileset, letterTiles[11], TSIZE * 11.5, TSIZE * 15)
-            love.graphics.draw(tileset, letterTiles[12], TSIZE * 4, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[4], TSIZE * 5, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[11], TSIZE * 7, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[8], TSIZE * 8, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[5], TSIZE * 9, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[12], TSIZE * 10, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[13], TSIZE * 11, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[11], TSIZE * 12, TSIZE * 16)
-            love.graphics.draw(tileset, letterTiles[12], TSIZE * 13, TSIZE * 16)
-        end
+    end
+    if gameEndState == "won" and timeSinceEnd > 360 then
+        love.graphics.draw(tileset, bannerTiles[1], TSIZE * 5, TSIZE * 1)
+        love.graphics.draw(tileset, bannerTiles[2], TSIZE * 5, TSIZE * 2)
+        love.graphics.draw(tileset, bannerTiles[3], TSIZE * 6, TSIZE * 1, 0, 6, 2)
+        love.graphics.draw(tileset, bannerTiles[4], TSIZE * 12, TSIZE * 1)
+        love.graphics.draw(tileset, bannerTiles[5], TSIZE * 12, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[1], TSIZE * 7.5, TSIZE * 1)
+        love.graphics.draw(tileset, letterTiles[4], TSIZE * 8.5, TSIZE * 1)
+        love.graphics.draw(tileset, letterTiles[7], TSIZE * 9.5, TSIZE * 1)
+        love.graphics.draw(tileset, letterTiles[3], TSIZE * 7, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[6], TSIZE * 8, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[9], TSIZE * 9, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[14], TSIZE * 10, TSIZE * 2)
+    end
+    if timeSinceEnd > 720 then
+        love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
+        love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
+        love.graphics.draw(tileset, bannerTiles[3], TSIZE * 4, TSIZE * 15, 0, 10, 2)
+        love.graphics.draw(tileset, bannerTiles[4], TSIZE * 14, TSIZE * 15)
+        love.graphics.draw(tileset, bannerTiles[5], TSIZE * 14, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[10], TSIZE * 5.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[11], TSIZE * 6.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[8], TSIZE * 7.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[5], TSIZE * 8.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[5], TSIZE * 9.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[11], TSIZE * 11.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[12], TSIZE * 4, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[4], TSIZE * 5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[11], TSIZE * 7, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[8], TSIZE * 8, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[5], TSIZE * 9, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[12], TSIZE * 10, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[13], TSIZE * 11, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[11], TSIZE * 12, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[12], TSIZE * 13, TSIZE * 16)
+    end
+
+    if timeSinceEnd < 60 and timeSinceEnd > 0 then
+        love.graphics.setColor(1, 1, 1, 1 - (timeSinceEnd / 60))
+        love.graphics.rectangle('fill', 0, 0, TSIZE * TILES_PER_ROW, TSIZE * TILES_PER_ROW)
+        love.graphics.setColor(1, 1, 1, 1)
     end
 
     love.graphics.setCanvas()
@@ -290,6 +348,11 @@ function love.update(dt)
         hoverTx = nil
         hoverTy = nil
     end
+    if timeSinceEnd == 360 or timeSinceEnd == 720 then
+        local sfx = bannersound:clone()
+        sfx:setPitch(math.random(80, 120) / 100)
+        sfx:play()
+    end
     -- mouse hover end
     handleParticles()
     -- handle shake
@@ -306,6 +369,22 @@ function love.update(dt)
                 break
             end
         end
+        local gameWon = true
+        for i = 1, #mines do
+            if boardDepth[i] == 2 and not mines[i] then
+                gameWon = false
+                break
+            end
+        end
+        if gameWon then
+            -- won the game!
+            gameActive = false
+            gameEndState = "won"
+            knockOffFlags()
+            local sfx = winsound:clone()
+            sfx:setPitch(math.random(80, 120) / 100)
+            sfx:play()
+        end
     end
     if not gameActive then
         timeSinceEnd = timeSinceEnd + 1
@@ -315,6 +394,14 @@ end
 function love.keypressed(key)
     if key == 'r' then
         resetGame()
+    end
+    if key == 'w' then
+        -- TEMP
+        for i = 1, #mines do
+            if boardDepth[i] == 2 and not mines[i] then
+                boardDepth[i] = 1
+            end
+        end
     end
 end
 
@@ -352,7 +439,7 @@ function love.mousepressed(mx, my, button)
         end
         if tileId ~= nil then
             if button ~= 1 then
-                if not newBoard and boardDepth[tileId] == 2 then
+                if boardDepth[tileId] == 2 then -- Allow flagging even on new board
                     -- flag
                     flags[tileId] = not flags[tileId]
                     if not flags[tileId] then
@@ -370,6 +457,7 @@ function love.mousepressed(mx, my, button)
                 -- dig
                 if not flags[tileId] and boardDepth[tileId] == 2 then
                     if newBoard then
+                        knockOffFlags() -- Knock off all flags on first dig
                         makeBoard()
                     end
                     while blankHints < 6 and newBoard do
@@ -583,21 +671,27 @@ function handleScreenShake()
     end
 end
 
-function resetGame()
-    mines = {}
-    hints = {}
-    glitches = {}
-    boardDepth = {}
-
-    -- knock off flags
+function knockOffFlags()
     for i = 1, #flags do
         if flags[i] then
             local fx = (i - 1) % TILES_PER_ROW
             local fy = math.floor((i - 1) / TILES_PER_ROW)
             newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
             flags[i] = false
+            local flagCopy = unflagsound:clone()
+            flagCopy:setPitch(0.8 + math.random() * 0.4)
+            flagCopy:play()
         end
     end
+end
+
+function resetGame()
+    mines = {}
+    hints = {}
+    glitches = {}
+    boardDepth = {}
+
+    knockOffFlags()
 
     gameActive = true
     showMines = false
@@ -620,21 +714,12 @@ function explodeTileAt(tile)
     local sfx = explodesound:clone()
     sfx:setPitch(math.random(80, 120) / 100)
     sfx:play()
-    glitch = love.audio.newSource("assets/glitch.wav", "stream")
     glitch:setLooping(true)
     glitch:play()
     local tx = (tile - 1) % TILES_PER_ROW
     local ty = math.floor((tile - 1) / TILES_PER_ROW)
 
-    -- knock off flags
-    for i = 1, #flags do
-        if flags[i] then
-            local fx = (i - 1) % TILES_PER_ROW
-            local fy = math.floor((i - 1) / TILES_PER_ROW)
-            newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
-            flags[i] = false
-        end
-    end
+    knockOffFlags()
 
     for i = 1, #mines do
         local ix = (i - 1) % TILES_PER_ROW

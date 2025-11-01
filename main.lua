@@ -20,6 +20,8 @@ local shakeLength, shakeLife, shakeStrength = 0, 0, 0
 local digShakeCount = 0
 local gameActive = true
 local showMines = false
+local timeSinceEnd = 0
+local gameEndState = "playing"
 
 function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
@@ -71,9 +73,33 @@ function love.load()
                    love.graphics.newQuad(TSIZE * 6, TSIZE * 5, TSIZE, TSIZE, tileset:getDimensions()),
                    love.graphics.newQuad(TSIZE * 7, TSIZE * 3, TSIZE, TSIZE, tileset:getDimensions()),
                    love.graphics.newQuad(TSIZE * 7, TSIZE * 4, TSIZE, TSIZE, tileset:getDimensions()),
-                   love.graphics.newQuad(TSIZE * 7, TSIZE * 5, TSIZE, TSIZE, tileset:getDimensions())}
+                   love.graphics.newQuad(TSIZE * 7, TSIZE * 5, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 2, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 2, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions())}
 
     outlineTile = love.graphics.newQuad(TSIZE * 0, TSIZE * 6, TSIZE + 2, TSIZE + 2, tileset:getDimensions())
+
+    bannerTiles = {love.graphics.newQuad(TSIZE * 2, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 2, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 3, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()),
+                   love.graphics.newQuad(TSIZE * 4, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions())}
+
+    letterTiles = {love.graphics.newQuad(TSIZE * 5, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()), -- Y
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions()), -- L
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()), -- W
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()), -- O
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions()), -- S
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()), -- I
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 6, TSIZE, TSIZE, tileset:getDimensions()), -- U
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 7, TSIZE, TSIZE, tileset:getDimensions()), -- E
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()), -- N
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- P
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- R
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- T
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions())} -- A
 
     local windowW, windowH = love.graphics.getDimensions()
     scale = math.min(math.floor(windowW / CANVAS_PIXELS), math.floor(windowH / CANVAS_PIXELS))
@@ -89,7 +115,6 @@ function love.load()
     bigdigsound = love.audio.newSource("assets/bigdig.wav", "static")
     flagsound = love.audio.newSource("assets/flag.wav", "static")
     unflagsound = love.audio.newSource("assets/unflag.wav", "static")
-
     hintsounds = {love.audio.newSource("assets/reveal1.wav", "static"),
                   love.audio.newSource("assets/reveal2.wav", "static"),
                   love.audio.newSource("assets/reveal3.wav", "static"),
@@ -98,6 +123,7 @@ function love.load()
                   love.audio.newSource("assets/reveal6.wav", "static"),
                   love.audio.newSource("assets/reveal7.wav", "static"),
                   love.audio.newSource("assets/reveal8.wav", "static")}
+    explodesound = love.audio.newSource("assets/explosion.wav", "static")
 
     makeBoard()
 end
@@ -189,6 +215,43 @@ function love.draw()
             1 - (particle.age / particle.life), 1 - (particle.age / particle.life), 8, 8)
     end
 
+    if gameEndState == "lost" and timeSinceEnd > 360 then
+        love.graphics.draw(tileset, bannerTiles[1], TSIZE * 5, TSIZE * 1)
+        love.graphics.draw(tileset, bannerTiles[2], TSIZE * 5, TSIZE * 2)
+        love.graphics.draw(tileset, bannerTiles[3], TSIZE * 6, TSIZE * 1, 0, 6, 2)
+        love.graphics.draw(tileset, bannerTiles[4], TSIZE * 12, TSIZE * 1)
+        love.graphics.draw(tileset, bannerTiles[5], TSIZE * 12, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[1], TSIZE * 7.5, TSIZE * 1)
+        love.graphics.draw(tileset, letterTiles[4], TSIZE * 8.5, TSIZE * 1)
+        love.graphics.draw(tileset, letterTiles[7], TSIZE * 9.5, TSIZE * 1)
+        love.graphics.draw(tileset, letterTiles[2], TSIZE * 7, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[4], TSIZE * 8, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[5], TSIZE * 9, TSIZE * 2)
+        love.graphics.draw(tileset, letterTiles[8], TSIZE * 10, TSIZE * 2)
+        if timeSinceEnd > 720 then
+            love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
+            love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
+            love.graphics.draw(tileset, bannerTiles[3], TSIZE * 4, TSIZE * 15, 0, 10, 2)
+            love.graphics.draw(tileset, bannerTiles[4], TSIZE * 14, TSIZE * 15)
+            love.graphics.draw(tileset, bannerTiles[5], TSIZE * 14, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[10], TSIZE * 5.5, TSIZE * 15)
+            love.graphics.draw(tileset, letterTiles[11], TSIZE * 6.5, TSIZE * 15)
+            love.graphics.draw(tileset, letterTiles[8], TSIZE * 7.5, TSIZE * 15)
+            love.graphics.draw(tileset, letterTiles[5], TSIZE * 8.5, TSIZE * 15)
+            love.graphics.draw(tileset, letterTiles[5], TSIZE * 9.5, TSIZE * 15)
+            love.graphics.draw(tileset, letterTiles[11], TSIZE * 11.5, TSIZE * 15)
+            love.graphics.draw(tileset, letterTiles[12], TSIZE * 4, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[4], TSIZE * 5, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[11], TSIZE * 7, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[8], TSIZE * 8, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[5], TSIZE * 9, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[12], TSIZE * 10, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[13], TSIZE * 11, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[11], TSIZE * 12, TSIZE * 16)
+            love.graphics.draw(tileset, letterTiles[12], TSIZE * 13, TSIZE * 16)
+        end
+    end
+
     love.graphics.setCanvas()
 
     local windowW, windowH = love.graphics.getDimensions()
@@ -238,10 +301,20 @@ function love.update(dt)
                 -- revealed a mine!
                 gameActive = false
                 showMines = true
+                gameEndState = "lost"
                 explodeTileAt(i)
                 break
             end
         end
+    end
+    if not gameActive then
+        timeSinceEnd = timeSinceEnd + 1
+    end
+end
+
+function love.keypressed(key)
+    if key == 'r' then
+        resetGame()
     end
 end
 
@@ -510,7 +583,46 @@ function handleScreenShake()
     end
 end
 
+function resetGame()
+    mines = {}
+    hints = {}
+    glitches = {}
+    boardDepth = {}
+
+    -- knock off flags
+    for i = 1, #flags do
+        if flags[i] then
+            local fx = (i - 1) % TILES_PER_ROW
+            local fy = math.floor((i - 1) / TILES_PER_ROW)
+            newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
+            flags[i] = false
+        end
+    end
+
+    gameActive = true
+    showMines = false
+    timeSinceEnd = 0
+    gameEndState = "playing"
+    shakeX, shakeY = 0, 0
+    shakeLength, shakeLife, shakeStrength = 0, 0, 0
+    digShakeCount = 0
+
+    for ty = 0, TILES_PER_ROW * TILES_PER_ROW - 1 do
+        table.insert(boardDepth, 2)
+    end
+    if glitch and glitch:isPlaying() then
+        glitch:stop()
+    end
+    makeBoard()
+end
+
 function explodeTileAt(tile)
+    local sfx = explodesound:clone()
+    sfx:setPitch(math.random(80, 120) / 100)
+    sfx:play()
+    glitch = love.audio.newSource("assets/glitch.wav", "stream")
+    glitch:setLooping(true)
+    glitch:play()
     local tx = (tile - 1) % TILES_PER_ROW
     local ty = math.floor((tile - 1) / TILES_PER_ROW)
 

@@ -253,7 +253,7 @@ function love.draw()
             1 - (particle.age / particle.life), 1 - (particle.age / particle.life), 8, 8)
     end
 
-    if gameEndState == "lost" and timeSinceEnd > 360 then
+    --[[if gameEndState == "lost" and timeSinceEnd > 360 then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 5, TSIZE * 1)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 5, TSIZE * 2)
         love.graphics.draw(tileset, bannerTiles[3], TSIZE * 6, TSIZE * 1, 0, 6, 2)
@@ -280,7 +280,7 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[6], TSIZE * 8, TSIZE * 2)
         love.graphics.draw(tileset, letterTiles[9], TSIZE * 9, TSIZE * 2)
         love.graphics.draw(tileset, letterTiles[14], TSIZE * 10, TSIZE * 2)
-    end
+    end]]
     if timeSinceEnd > 720 then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
@@ -348,7 +348,7 @@ function love.update(dt)
         hoverTx = nil
         hoverTy = nil
     end
-    if timeSinceEnd == 360 or timeSinceEnd == 720 then
+    if --[[timeSinceEnd == 360 or ]]timeSinceEnd == 720 then
         local sfx = bannersound:clone()
         sfx:setPitch(math.random(80, 120) / 100)
         sfx:play()
@@ -395,14 +395,14 @@ function love.keypressed(key)
     if key == 'r' then
         resetGame()
     end
-    if key == 'w' then
+    --[[if key == 'w' then
         -- TEMP
         for i = 1, #mines do
             if boardDepth[i] == 2 and not mines[i] then
                 boardDepth[i] = 1
             end
         end
-    end
+    end]]
 end
 
 function love.mousepressed(mx, my, button)

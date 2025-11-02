@@ -20,8 +20,9 @@ local shakeLength, shakeLife, shakeStrength = 0, 0, 0
 local digShakeCount = 0
 local gameActive = true
 local showMines = false
-local timeSinceEnd = 0
+local timeOfEnd = math.huge
 local gameEndState = "playing"
+local bannerSoundPlayed = false
 
 function love.load()
     math.randomseed(os.time())
@@ -224,13 +225,14 @@ function love.draw()
                 if flags[tileId] then
                     love.graphics.draw(tileset, flagTile, x, y)
                 end
-                if gameEndState == "won" and 2 * tx - ty + TILES_PER_ROW < (timeSinceEnd / 15) -
+                if gameEndState == "won" and 2 * tx - ty + TILES_PER_ROW < (love.timer.getTime() - timeOfEnd * 8) -
                     ((3 * tx - 37 * ty) % 4 - 2) then
-                    local hash = math.floor(math.min(math.floor((timeSinceEnd / 15) - ((3 * tx - 37 * ty) % 4 - 2)) -
+                    local hash = math.floor(math.min(math.floor(
+                        (love.timer.getTime() - timeOfEnd * 8) - ((3 * tx - 37 * ty) % 4 - 2)) -
                                                          (2 * tx - ty + TILES_PER_ROW), 7) / 2) + 1
                     love.graphics.draw(tileset, grassTiles[hash], x, y)
                     if mines[tileId] then
-                        if (tx + ty + math.floor(timeSinceEnd / 60)) % 2 == 1 then
+                        if (tx + ty + math.floor(love.timer.getTime() - timeOfEnd) * 2) % 2 == 1 then
                             hash = hash + 1
                         end
                         hash = hash + ((tx + ty) % 3) * 5
@@ -253,7 +255,7 @@ function love.draw()
             1 - (particle.age / particle.life), 1 - (particle.age / particle.life), 8, 8)
     end
 
-    --[[if gameEndState == "lost" and timeSinceEnd > 360 then
+    --[[if gameEndState == "lost" and love.timer.getTime()-timeOfEnd > 1.5 then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 5, TSIZE * 1)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 5, TSIZE * 2)
         love.graphics.draw(tileset, bannerTiles[3], TSIZE * 6, TSIZE * 1, 0, 6, 2)
@@ -267,7 +269,7 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[5], TSIZE * 9, TSIZE * 2)
         love.graphics.draw(tileset, letterTiles[8], TSIZE * 10, TSIZE * 2)
     end
-    if gameEndState == "won" and timeSinceEnd > 360 then
+    if gameEndState == "won" and love.timer.getTime()-timeOfEnd > 1.5 then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 5, TSIZE * 1)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 5, TSIZE * 2)
         love.graphics.draw(tileset, bannerTiles[3], TSIZE * 6, TSIZE * 1, 0, 6, 2)
@@ -281,7 +283,7 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[9], TSIZE * 9, TSIZE * 2)
         love.graphics.draw(tileset, letterTiles[14], TSIZE * 10, TSIZE * 2)
     end]]
-    if timeSinceEnd > 720 then
+    if love.timer.getTime() - timeOfEnd > 3 then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
         love.graphics.draw(tileset, bannerTiles[3], TSIZE * 4, TSIZE * 15, 0, 10, 2)
@@ -304,8 +306,8 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[12], TSIZE * 13, TSIZE * 16)
     end
 
-    if timeSinceEnd < 60 and timeSinceEnd > 0 then
-        love.graphics.setColor(1, 1, 1, 1 - (timeSinceEnd / 60))
+    if love.timer.getTime() - timeOfEnd < 1 and love.timer.getTime() - timeOfEnd > 0 then
+        love.graphics.setColor(1, 1, 1, 1 - love.timer.getTime() - timeOfEnd)
         love.graphics.rectangle('fill', 0, 0, TSIZE * TILES_PER_ROW, TSIZE * TILES_PER_ROW)
         love.graphics.setColor(1, 1, 1, 1)
     end
@@ -348,10 +350,11 @@ function love.update(dt)
         hoverTx = nil
         hoverTy = nil
     end
-    if --[[timeSinceEnd == 360 or ]]timeSinceEnd == 720 then
+    if --[[timeOfEnd == 360 or ]] love.timer.getTime() - timeOfEnd > 3 and not bannerSoundPlayed then
         local sfx = bannersound:clone()
         sfx:setPitch(math.random(80, 120) / 100)
         sfx:play()
+        bannerSoundPlayed = true
     end
     -- mouse hover end
     handleParticles()
@@ -364,6 +367,7 @@ function love.update(dt)
                 -- revealed a mine!
                 gameActive = false
                 showMines = true
+                timeOfEnd = love.timer.getTime()
                 gameEndState = "lost"
                 explodeTileAt(i)
                 break
@@ -380,14 +384,12 @@ function love.update(dt)
             -- won the game!
             gameActive = false
             gameEndState = "won"
+            timeOfEnd = love.timer.getTime()
             knockOffFlags()
             local sfx = winsound:clone()
             sfx:setPitch(math.random(80, 120) / 100)
             sfx:play()
         end
-    end
-    if not gameActive then
-        timeSinceEnd = timeSinceEnd + 1
     end
 end
 
@@ -642,10 +644,10 @@ function handleParticles()
                 table.remove(particles, i)
                 i = i - 1
             else
-                particle.x = particle.x + particle.vx
-                particle.y = particle.y + particle.vy
-                particle.rot = particle.rot + particle.vr
-                particle.vy = particle.vy + 0.005 -- gravity
+                particle.x = particle.x + particle.vx * love.timer.getDelta() * 240
+                particle.y = particle.y + particle.vy * love.timer.getDelta() * 240
+                particle.rot = particle.rot + particle.vr * love.timer.getDelta() * 240
+                particle.vy = particle.vy + 0.005 * love.timer.getDelta() * 240 -- gravity
             end
         end
     end
@@ -695,7 +697,8 @@ function resetGame()
 
     gameActive = true
     showMines = false
-    timeSinceEnd = 0
+    timeOfEnd = math.huge
+    bannerSoundPlayed = false
     gameEndState = "playing"
     shakeX, shakeY = 0, 0
     shakeLength, shakeLife, shakeStrength = 0, 0, 0

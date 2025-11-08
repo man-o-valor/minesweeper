@@ -102,7 +102,16 @@ function love.load()
     love.graphics.newQuad(TSIZE * 6, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- R
     love.graphics.newQuad(TSIZE * 7, TSIZE * 9, TSIZE, TSIZE, tileset:getDimensions()), -- T
     love.graphics.newQuad(TSIZE * 5, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()), -- A
-    love.graphics.newQuad(TSIZE * 4, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions())} -- !
+    love.graphics.newQuad(TSIZE * 4, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()), -- !
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()), -- X
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 10, TSIZE, TSIZE, tileset:getDimensions()), -- Z
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()), -- space
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()), -- left mouse
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()), -- right mouse
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 12, TSIZE, TSIZE, tileset:getDimensions()), -- :
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 12, TSIZE, TSIZE, tileset:getDimensions()), -- D
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 12, TSIZE, TSIZE, tileset:getDimensions()), -- G
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 13, TSIZE, TSIZE, tileset:getDimensions())} -- F
 
     grassTiles = {love.graphics.newQuad(TSIZE * 0, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
                   love.graphics.newQuad(TSIZE * 1, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
@@ -225,14 +234,14 @@ function love.draw()
                 if flags[tileId] then
                     love.graphics.draw(tileset, flagTile, x, y)
                 end
-                if gameEndState == "won" and 2 * tx - ty + TILES_PER_ROW < (love.timer.getTime() - timeOfEnd * 8) -
+                if gameEndState == "won" and 2 * tx - ty + TILES_PER_ROW < ((love.timer.getTime() - timeOfEnd) * 16) -
                     ((3 * tx - 37 * ty) % 4 - 2) then
                     local hash = math.floor(math.min(math.floor(
-                        (love.timer.getTime() - timeOfEnd * 8) - ((3 * tx - 37 * ty) % 4 - 2)) -
+                        ((love.timer.getTime() - timeOfEnd) * 16) - ((3 * tx - 37 * ty) % 4 - 2)) -
                                                          (2 * tx - ty + TILES_PER_ROW), 7) / 2) + 1
                     love.graphics.draw(tileset, grassTiles[hash], x, y)
                     if mines[tileId] then
-                        if (tx + ty + math.floor(love.timer.getTime() - timeOfEnd) * 2) % 2 == 1 then
+                        if (tx + ty + math.floor((love.timer.getTime() - timeOfEnd) * 2)) % 2 == 1 then
                             hash = hash + 1
                         end
                         hash = hash + ((tx + ty) % 3) * 5
@@ -306,8 +315,30 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[12], TSIZE * 13, TSIZE * 16)
     end
 
-    if love.timer.getTime() - timeOfEnd < 1 and love.timer.getTime() - timeOfEnd > 0 then
-        love.graphics.setColor(1, 1, 1, 1 - love.timer.getTime() - timeOfEnd)
+    if newBoard then
+        love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
+        love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
+        love.graphics.draw(tileset, bannerTiles[3], TSIZE * 4, TSIZE * 15, 0, 10, 2)
+        love.graphics.draw(tileset, bannerTiles[4], TSIZE * 14, TSIZE * 15)
+        love.graphics.draw(tileset, bannerTiles[5], TSIZE * 14, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[18], TSIZE * 5.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[16], TSIZE * 6.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[20], TSIZE * 7.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[21], TSIZE * 9.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[6], TSIZE * 10.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[22], TSIZE * 11.5, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[15], TSIZE * 4.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[17], TSIZE * 5.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[19], TSIZE * 6.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[20], TSIZE * 7.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[23], TSIZE * 9.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[2], TSIZE * 10.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[13], TSIZE * 11.5, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[22], TSIZE * 12.5, TSIZE * 16)
+    end
+
+    if love.timer.getTime() - timeOfEnd < 0.5 and love.timer.getTime() - timeOfEnd > 0 then
+        love.graphics.setColor(1, 1, 1, 1 - (love.timer.getTime() - timeOfEnd) * 2)
         love.graphics.rectangle('fill', 0, 0, TSIZE * TILES_PER_ROW, TSIZE * TILES_PER_ROW)
         love.graphics.setColor(1, 1, 1, 1)
     end
@@ -405,142 +436,18 @@ function love.keypressed(key)
             end
         end
     end]]
+    if key == 'z' then
+        local mx, my = love.mouse.getPosition()
+        digOrFlag(mx, my, 1)
+    end
+    if key == 'x' or key == 'space' then
+        local mx, my = love.mouse.getPosition()
+        digOrFlag(mx, my, 2)
+    end
 end
 
 function love.mousepressed(mx, my, button)
-    if gameActive then
-        -- compute canvas position on screen
-        local windowW, windowH = love.graphics.getDimensions()
-        local screenX = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
-        local screenY = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
-        local localX, localY, tx, ty
-        local tileId
-
-        -- check if click inside canvas area
-        if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY +
-            (CANVAS_PIXELS * scale) then
-            localX = math.floor((mx - screenX) / scale)
-            localY = math.floor((my - screenY) / scale)
-            tx = math.floor(localX / TSIZE)
-            ty = math.floor(localY / TSIZE)
-            -- clamp to board
-            if tx < 0 then
-                tx = 0
-            end
-            if tx >= TILES_PER_ROW then
-                tx = TILES_PER_ROW - 1
-            end
-            if ty < 0 then
-                ty = 0
-            end
-            if ty >= TILES_PER_ROW then
-                ty = TILES_PER_ROW - 1
-            end
-
-            tileId = ty * TILES_PER_ROW + tx + 1
-        end
-        if tileId ~= nil then
-            if button ~= 1 then
-                if boardDepth[tileId] == 2 then -- Allow flagging even on new board
-                    -- flag
-                    flags[tileId] = not flags[tileId]
-                    if not flags[tileId] then
-                        newParticle(tx * TSIZE + 8, ty * TSIZE + 8, flagTile)
-                        local sfx = unflagsound:clone()
-                        sfx:setPitch(math.random(80, 120) / 100)
-                        sfx:play()
-                    else
-                        local sfx = flagsound:clone()
-                        sfx:setPitch(math.random(80, 120) / 100)
-                        sfx:play()
-                    end
-                end
-            else
-                -- dig
-                if not flags[tileId] and boardDepth[tileId] == 2 then
-                    if newBoard then
-                        knockOffFlags() -- Knock off all flags on first dig
-                        makeBoard()
-                    end
-                    while blankHints < 6 and newBoard do
-                        makeBoard()
-                        boardFlood(tileId)
-                    end
-                    boardDepth[tileId] = 1
-                    newParticle(tx * TSIZE + 8, ty * TSIZE + 8, coverTile)
-                    if not newBoard then
-                        boardFlood(tileId)
-                    end
-                    newBoard = false
-                    if (digShakeCount > 2) then
-                        local sfx = bigdigsound:clone()
-                        sfx:setPitch(math.random(80, 120) / 100)
-                        sfx:play()
-                    else
-                        local sfx = digsound:clone()
-                        sfx:setPitch(math.random(80, 120) / 100)
-                        sfx:play()
-                    end
-                    if hints[tileId] > 0 and hints[tileId] < 9 then
-                        local sfx = hintsounds[hints[tileId]]:clone()
-                        sfx:play()
-                    end
-                elseif boardDepth[tileId] == 1 and hints[tileId] >= 1 and hints[tileId] < 9 then
-                    -- chord: if enough flags are placed around a revealed hint tile, reveal all unflagged covered neighbors
-                    local needed = hints[tileId]
-                    local flagCount = 0
-                    local tx = (tileId - 1) % TILES_PER_ROW
-                    local ty = math.floor((tileId - 1) / TILES_PER_ROW)
-                    for dy = -1, 1 do
-                        for dx = -1, 1 do
-                            if not (dx == 0 and dy == 0) then
-                                local nx = tx + dx
-                                local ny = ty + dy
-                                if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
-                                    local nId = ny * TILES_PER_ROW + nx + 1
-                                    if flags[nId] then
-                                        flagCount = flagCount + 1
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    local digsoundflag = false
-                    if flagCount >= needed then
-                        for dy = -1, 1 do
-                            for dx = -1, 1 do
-                                if not (dx == 0 and dy == 0) then
-                                    local nx = tx + dx
-                                    local ny = ty + dy
-                                    if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
-                                        local nId = ny * TILES_PER_ROW + nx + 1
-                                        if not flags[nId] and boardDepth[nId] == 2 then
-                                            boardDepth[nId] = 1
-                                            newParticle(nx * TSIZE + 8, ny * TSIZE + 8, coverTile)
-
-                                            if hints[nId] == 0 then
-                                                boardFlood(nId)
-                                            end
-                                            if hints[nId] > 0 and hints[nId] < 9 then
-                                                local sfx = hintsounds[hints[nId]]:clone()
-                                                sfx:play()
-                                                digsoundflag = true
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        if (digsoundflag) then
-                            local sfx = digsound:clone()
-                            sfx:setPitch(math.random(80, 120) / 100)
-                            sfx:play()
-                        end
-                    end
-                end
-            end
-        end
-    end
+    digOrFlag(mx, my, button)
 end
 
 function makeBoard()
@@ -585,39 +492,52 @@ function makeBoard()
     end
 end
 
-function boardFlood(id)
-    if hints[id] == 0 then
-        boardFloodStep(id, 0)
-    end
-end
-
-function boardFloodStep(id, layers)
-    if layers > 9 then -- don't overflow!
-        return nIndex
-    end
-    local tx = (id - 1) % TILES_PER_ROW
-    local ty = math.floor((id - 1) / TILES_PER_ROW)
-    local count = 0
-    local nIndex
-    for dy = -1, 1 do
-        for dx = -1, 1 do
-            local nx = tx + dx
-            local ny = ty + dy
-            if (not (dx == 0 and dy == 0)) and nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
-                nIndex = ny * TILES_PER_ROW + nx + 1
-                if boardDepth[nIndex] == 2 then
-                    newParticle(nx * TSIZE + 8, ny * TSIZE + 8, coverTile)
-                    boardDepth[nIndex] = 1
-                    digShakeCount = digShakeCount + 1
+function boardFlood()
+    local boardNeedsFlood = true
+    while boardNeedsFlood do
+        boardNeedsFlood = false
+        for i = 1, TILES_PER_ROW * TILES_PER_ROW do
+            local idx0 = i - 1
+            local tx = idx0 % TILES_PER_ROW
+            local ty = math.floor(idx0 / TILES_PER_ROW)
+            local reveal = 0
+            if boardDepth[i] == 1 and hints[i] == 0 then
+                for dy = -1, 1 do
+                    for dx = -1, 1 do
+                        if not (dx == 0 and dy == 0) then
+                            local nx = tx + dx
+                            local ny = ty + dy
+                            if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                                local nIndex = ny * TILES_PER_ROW + nx + 1
+                                if boardDepth[nIndex] == 2 then
+                                    reveal = nIndex
+                                    newParticle(nx * TSIZE + 8, ny * TSIZE + 8, coverTile)
+                                    if flags[nIndex] then
+                                        local fx = (nIndex - 1) % TILES_PER_ROW
+                                        local fy = math.floor((nIndex - 1) / TILES_PER_ROW)
+                                        newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
+                                        flags[nIndex] = false
+                                        local flagCopy = unflagsound:clone()
+                                        flagCopy:setPitch(0.8 + math.random() * 0.4)
+                                        flagCopy:play()
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    if reveal > 0 then
+                        break
+                    end
                 end
-                if hints[nIndex] == 0 then
-                    blankHints = blankHints + 1
-                    boardFloodStep(nIndex, layers + 1)
+                if reveal > 0 then
+                    boardDepth[reveal] = 1
+                    digShakeCount = digShakeCount + 1
+                    boardNeedsFlood = true
                 end
             end
         end
     end
-    return nIndex
 end
 
 function newParticle(x, y, sprite)
@@ -753,6 +673,146 @@ function explodeTileAt(tile)
     shakeLength = 240
     shakeLife = 0
     shakeStrength = 8
+end
+
+function digOrFlag(mx, my, button)
+    if gameActive then
+        -- compute canvas position on screen
+        local windowW, windowH = love.graphics.getDimensions()
+        local screenX = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
+        local screenY = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
+        local localX, localY, tx, ty
+        local tileId
+
+        -- check if click inside canvas area
+        if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY +
+            (CANVAS_PIXELS * scale) then
+            localX = math.floor((mx - screenX) / scale)
+            localY = math.floor((my - screenY) / scale)
+            tx = math.floor(localX / TSIZE)
+            ty = math.floor(localY / TSIZE)
+            -- clamp to board
+            if tx < 0 then
+                tx = 0
+            end
+            if tx >= TILES_PER_ROW then
+                tx = TILES_PER_ROW - 1
+            end
+            if ty < 0 then
+                ty = 0
+            end
+            if ty >= TILES_PER_ROW then
+                ty = TILES_PER_ROW - 1
+            end
+
+            tileId = ty * TILES_PER_ROW + tx + 1
+        end
+        if tileId ~= nil then
+            if button ~= 1 then
+                if boardDepth[tileId] == 2 then -- Allow flagging even on new board
+                    -- flag
+                    flags[tileId] = not flags[tileId]
+                    if not flags[tileId] then
+                        newParticle(tx * TSIZE + 8, ty * TSIZE + 8, flagTile)
+                        local sfx = unflagsound:clone()
+                        sfx:setPitch(math.random(80, 120) / 100)
+                        sfx:play()
+                    else
+                        local sfx = flagsound:clone()
+                        sfx:setPitch(math.random(80, 120) / 100)
+                        sfx:play()
+                    end
+                end
+            else
+                -- dig
+                if not flags[tileId] and boardDepth[tileId] == 2 then
+                    if newBoard then
+                        knockOffFlags() -- Knock off all flags on first dig
+                        while digShakeCount == 0 do
+                            digShakeCount = 0
+                            makeBoard()
+                            boardDepth[tileId] = 1
+                            boardFlood()
+                        end
+                    end
+                    newParticle(tx * TSIZE + 8, ty * TSIZE + 8, coverTile)
+                    if not newBoard then
+                        boardDepth[tileId] = 1
+                        boardFlood()
+                    end
+                    newBoard = false
+                    playDigSound()
+                    if hints[tileId] > 0 and hints[tileId] < 9 then
+                        local sfx = hintsounds[hints[tileId]]:clone()
+                        sfx:play()
+                    end
+                elseif boardDepth[tileId] == 1 and hints[tileId] >= 1 and hints[tileId] < 9 then
+                    -- chord: if enough flags are placed around a revealed hint tile, reveal all unflagged covered neighbors
+                    local needed = hints[tileId]
+                    local flagCount = 0
+                    local tx = (tileId - 1) % TILES_PER_ROW
+                    local ty = math.floor((tileId - 1) / TILES_PER_ROW)
+                    for dy = -1, 1 do
+                        for dx = -1, 1 do
+                            if not (dx == 0 and dy == 0) then
+                                local nx = tx + dx
+                                local ny = ty + dy
+                                if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                                    local nId = ny * TILES_PER_ROW + nx + 1
+                                    if flags[nId] then
+                                        flagCount = flagCount + 1
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    local highestSound = -1
+                    if flagCount >= needed then
+                        for dy = -1, 1 do
+                            for dx = -1, 1 do
+                                if not (dx == 0 and dy == 0) then
+                                    local nx = tx + dx
+                                    local ny = ty + dy
+                                    if nx >= 0 and nx < TILES_PER_ROW and ny >= 0 and ny < TILES_PER_ROW then
+                                        local nId = ny * TILES_PER_ROW + nx + 1
+                                        if not flags[nId] and boardDepth[nId] == 2 then
+                                            boardDepth[nId] = 1
+                                            newParticle(nx * TSIZE + 8, ny * TSIZE + 8, coverTile)
+                                            if hints[nId] == 0 then
+                                                boardFlood()
+                                            end
+                                            if hints[nId] > highestSound and hints[nId] < 9 then
+                                                highestSound = hints[nId]
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        if highestSound > -1 then
+                            playDigSound()
+                            if highestSound > 0 then
+                                local sfx = hintsounds[highestSound]:clone()
+                                sfx:play()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function playDigSound()
+    if (digShakeCount > 2) then
+        local sfx = bigdigsound:clone()
+        sfx:setPitch(math.random(80, 120) / 100)
+        sfx:play()
+    else
+        local sfx = digsound:clone()
+        sfx:setPitch(math.random(80, 120) / 100)
+        sfx:play()
+    end
 end
 
 return CANVAS_PIXELS

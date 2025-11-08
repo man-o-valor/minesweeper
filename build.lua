@@ -1,8 +1,8 @@
 return {
-    name = 'Minesweeper',
+    name = 'minesweeper',
     developer = 'Man-o-Valor',
     output = 'dist',
-    version = '1.1a',
+    version = '1.2',
     love = '11.5',
     ignore = {'.gitignore', 'icon.icns', 'icon.ico', '.git'},
     icon = 'icon.png',

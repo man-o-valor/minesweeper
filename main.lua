@@ -18,11 +18,13 @@ local particles = {}
 local shakeX, shakeY = 0, 0
 local shakeLength, shakeLife, shakeStrength = 0, 0, 0
 local digShakeCount = 0
-local gameActive = true
+local gameActive = false
 local showMines = false
 local timeOfEnd = math.huge
-local gameEndState = "playing"
+local gameEndState = "menu"
 local bannerSoundPlayed = false
+local photosensitive = true
+local sfx = true
 
 function love.load()
     math.randomseed(os.time())
@@ -33,6 +35,8 @@ function love.load()
     staticShader = love.graphics.newShader('assets/static.glsl')
     tileset = love.graphics.newImage('assets/minesweeper.png')
     tileset:setFilter('nearest', 'nearest')
+    logoimg = love.graphics.newImage('assets/logo.png')
+    logoimg:setFilter('nearest', 'nearest')
 
     -- covering tile quad
     coverTile = love.graphics.newQuad(TSIZE * 0, TSIZE * 0, TSIZE, TSIZE, tileset:getDimensions())
@@ -111,7 +115,13 @@ function love.load()
     love.graphics.newQuad(TSIZE * 5, TSIZE * 12, TSIZE, TSIZE, tileset:getDimensions()), -- :
     love.graphics.newQuad(TSIZE * 6, TSIZE * 12, TSIZE, TSIZE, tileset:getDimensions()), -- D
     love.graphics.newQuad(TSIZE * 7, TSIZE * 12, TSIZE, TSIZE, tileset:getDimensions()), -- G
-    love.graphics.newQuad(TSIZE * 5, TSIZE * 13, TSIZE, TSIZE, tileset:getDimensions())} -- F
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 13, TSIZE, TSIZE, tileset:getDimensions()), -- F
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 13, TSIZE, TSIZE, tileset:getDimensions()), -- photosensitivity
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 13, TSIZE, TSIZE, tileset:getDimensions()), -- sfx
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 14, TSIZE, TSIZE, tileset:getDimensions()), -- yes
+    love.graphics.newQuad(TSIZE * 6, TSIZE * 14, TSIZE, TSIZE, tileset:getDimensions()), -- no
+    love.graphics.newQuad(TSIZE * 7, TSIZE * 14, TSIZE, TSIZE, tileset:getDimensions()), -- dash
+    love.graphics.newQuad(TSIZE * 5, TSIZE * 15, TSIZE, TSIZE, tileset:getDimensions())} -- k
 
     grassTiles = {love.graphics.newQuad(TSIZE * 0, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
                   love.graphics.newQuad(TSIZE * 1, TSIZE * 8, TSIZE, TSIZE, tileset:getDimensions()),
@@ -132,6 +142,8 @@ function love.load()
                    love.graphics.newQuad(TSIZE * 2, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()),
                    love.graphics.newQuad(TSIZE * 3, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions()),
                    love.graphics.newQuad(TSIZE * 4, TSIZE * 11, TSIZE, TSIZE, tileset:getDimensions())}
+
+    logo = love.graphics.newQuad(0, 0, 180, 76, logoimg:getDimensions())
 
     local windowW, windowH = love.graphics.getDimensions()
     scale = math.min(math.floor(windowW / CANVAS_PIXELS), math.floor(windowH / CANVAS_PIXELS))
@@ -258,12 +270,6 @@ function love.draw()
         love.graphics.setColor(1, 1, 1, 1)
     end
 
-    for i = 1, #particles do
-        local particle = particles[i]
-        love.graphics.draw(tileset, particle.sprite, particle.x, particle.y, particle.rot / 10,
-            1 - (particle.age / particle.life), 1 - (particle.age / particle.life), 8, 8)
-    end
-
     --[[if gameEndState == "lost" and love.timer.getTime()-timeOfEnd > 1.5 then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 5, TSIZE * 1)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 5, TSIZE * 2)
@@ -315,7 +321,37 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[12], TSIZE * 13, TSIZE * 16)
     end
 
-    if newBoard then
+    if gameEndState == 'menu' then
+        love.graphics.draw(logoimg, logo, 54, 36)
+        if math.floor(love.timer.getTime() * 2) % 2 == 0 then
+            love.graphics.draw(tileset, bannerTiles[3], TSIZE * 1.5, TSIZE * 11, 0, 15, 1)
+            love.graphics.draw(tileset, bannerTiles[1], TSIZE * 1, TSIZE * 11)
+            love.graphics.draw(tileset, bannerTiles[2], TSIZE * 1, TSIZE * 11)
+            love.graphics.draw(tileset, bannerTiles[4], TSIZE * 16, TSIZE * 11)
+            love.graphics.draw(tileset, bannerTiles[5], TSIZE * 16, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[28], TSIZE * 1.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[10], TSIZE * 2.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[11], TSIZE * 3.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[8], TSIZE * 4.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[5], TSIZE * 5.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[5], TSIZE * 6.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[13], TSIZE * 8.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[9], TSIZE * 9.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[1], TSIZE * 10.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[29], TSIZE * 12.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[8], TSIZE * 13.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[1], TSIZE * 14.5, TSIZE * 11)
+            love.graphics.draw(tileset, letterTiles[28], TSIZE * 15.5, TSIZE * 11)
+        end
+        love.graphics.draw(tileset, bannerTiles[3], TSIZE * 0, TSIZE * 15, 0, 2, 2)
+        love.graphics.draw(tileset, bannerTiles[4], TSIZE * 2, TSIZE * 15)
+        love.graphics.draw(tileset, bannerTiles[5], TSIZE * 2, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[24], TSIZE * 0, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[25], TSIZE * 0, TSIZE * 16)
+        love.graphics.draw(tileset, letterTiles[27 - (photosensitive == true and 1 or photosensitive == false and 0)],
+            TSIZE * 1, TSIZE * 15)
+        love.graphics.draw(tileset, letterTiles[27 - (sfx == true and 1 or sfx == false and 0)], TSIZE * 1, TSIZE * 16)
+    elseif newBoard then
         love.graphics.draw(tileset, bannerTiles[1], TSIZE * 3, TSIZE * 15)
         love.graphics.draw(tileset, bannerTiles[2], TSIZE * 3, TSIZE * 16)
         love.graphics.draw(tileset, bannerTiles[3], TSIZE * 4, TSIZE * 15, 0, 10, 2)
@@ -337,7 +373,18 @@ function love.draw()
         love.graphics.draw(tileset, letterTiles[22], TSIZE * 12.5, TSIZE * 16)
     end
 
-    if love.timer.getTime() - timeOfEnd < 0.5 and love.timer.getTime() - timeOfEnd > 0 then
+    for i = 1, #particles do
+        local particle = particles[i]
+        if particle.sprite == logo then
+            love.graphics.draw(logoimg, particle.sprite, particle.x - 90 + TSIZE / 2, particle.y - 38 + TSIZE / 2,
+                particle.rot / 10, 1, 1, 8, 8)
+        else
+            love.graphics.draw(tileset, particle.sprite, particle.x - TSIZE / 2, particle.y - TSIZE / 2,
+                particle.rot / 10, 1 - (particle.age / particle.life), 1 - (particle.age / particle.life), 8, 8)
+        end
+    end
+
+    if love.timer.getTime() - timeOfEnd < 0.5 and love.timer.getTime() - timeOfEnd > 0 and photosensitive then
         love.graphics.setColor(1, 1, 1, 1 - (love.timer.getTime() - timeOfEnd) * 2)
         love.graphics.rectangle('fill', 0, 0, TSIZE * TILES_PER_ROW, TSIZE * TILES_PER_ROW)
         love.graphics.setColor(1, 1, 1, 1)
@@ -382,9 +429,7 @@ function love.update(dt)
         hoverTy = nil
     end
     if --[[timeOfEnd == 360 or ]] love.timer.getTime() - timeOfEnd > 3 and not bannerSoundPlayed then
-        local sfx = bannersound:clone()
-        sfx:setPitch(math.random(80, 120) / 100)
-        sfx:play()
+        playsound(bannersound, 80, 120)
         bannerSoundPlayed = true
     end
     -- mouse hover end
@@ -417,18 +462,32 @@ function love.update(dt)
             gameEndState = "won"
             timeOfEnd = love.timer.getTime()
             knockOffFlags()
-            local sfx = winsound:clone()
-            sfx:setPitch(math.random(80, 120) / 100)
-            sfx:play()
+            playsound(winsound, 80, 120)
         end
     end
 end
 
 function love.keypressed(key)
-    if key == 'r' then
-        resetGame()
-    end
-    --[[if key == 'w' then
+    if gameEndState == "menu" then
+        gameEndState = "playing"
+        gameActive = true
+        local particle = {
+            x = 54 + 90,
+            y = 36 + 38,
+            rot = 0,
+            sprite = logo,
+            life = math.random(6, 15) * 120,
+            age = 0,
+            vx = math.random(-3, 3) / 50,
+            vy = math.random(-3, 0) / 50,
+            vr = math.random(-2, 2) / 100
+        }
+        table.insert(particles, particle)
+    else
+        if key == 'r' then
+            resetGame()
+        end
+        --[[if key == 'w' then
         -- TEMP
         for i = 1, #mines do
             if boardDepth[i] == 2 and not mines[i] then
@@ -436,18 +495,59 @@ function love.keypressed(key)
             end
         end
     end]]
-    if key == 'z' then
-        local mx, my = love.mouse.getPosition()
-        digOrFlag(mx, my, 1)
-    end
-    if key == 'x' or key == 'space' then
-        local mx, my = love.mouse.getPosition()
-        digOrFlag(mx, my, 2)
+        if key == 'z' then
+            local mx, my = love.mouse.getPosition()
+            digOrFlag(mx, my, 1)
+        end
+        if key == 'x' or key == 'space' then
+            local mx, my = love.mouse.getPosition()
+            digOrFlag(mx, my, 2)
+        end
     end
 end
 
 function love.mousepressed(mx, my, button)
-    digOrFlag(mx, my, button)
+    if gameEndState == "menu" then
+        local windowW, windowH = love.graphics.getDimensions()
+        local screenX = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
+        local screenY = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
+        local localX, localY, tx, ty
+        local tileId
+
+        -- check if click inside canvas area
+        if mx >= screenX and mx < screenX + (CANVAS_PIXELS * scale) and my >= screenY and my < screenY +
+            (CANVAS_PIXELS * scale) then
+            localX = math.floor((mx - screenX) / scale)
+            localY = math.floor((my - screenY) / scale)
+            tx = math.floor(localX / TSIZE)
+            ty = math.floor(localY / TSIZE)
+            -- clamp to board
+            if tx < 0 then
+                tx = 0
+            end
+            if tx >= TILES_PER_ROW then
+                tx = TILES_PER_ROW - 1
+            end
+            if ty < 0 then
+                ty = 0
+            end
+            if ty >= TILES_PER_ROW then
+                ty = TILES_PER_ROW - 1
+            end
+
+            tileId = ty * TILES_PER_ROW + tx + 1
+        end
+        if button == 1 then
+            if tileId == 271 or tileId == 272 then
+                photosensitive = not photosensitive
+            end
+            if tileId == 289 or tileId == 290 then
+                sfx = not sfx
+            end
+        end
+    else
+        digOrFlag(mx, my, button)
+    end
 end
 
 function makeBoard()
@@ -517,9 +617,7 @@ function boardFlood()
                                         local fy = math.floor((nIndex - 1) / TILES_PER_ROW)
                                         newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
                                         flags[nIndex] = false
-                                        local flagCopy = unflagsound:clone()
-                                        flagCopy:setPitch(0.8 + math.random() * 0.4)
-                                        flagCopy:play()
+                                        playsound(unfagsound, 80, 120)
                                     end
                                     break
                                 end
@@ -542,8 +640,8 @@ end
 
 function newParticle(x, y, sprite)
     local particle = {}
-    particle.x = x
-    particle.y = y
+    particle.x = x + TSIZE / 2
+    particle.y = y + TSIZE / 2
     particle.rot = 0
     particle.sprite = sprite
 
@@ -600,9 +698,7 @@ function knockOffFlags()
             local fy = math.floor((i - 1) / TILES_PER_ROW)
             newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
             flags[i] = false
-            local flagCopy = unflagsound:clone()
-            flagCopy:setPitch(0.8 + math.random() * 0.4)
-            flagCopy:play()
+            playsound(unflagsound, 80, 120)
         end
     end
 end
@@ -634,11 +730,11 @@ function resetGame()
 end
 
 function explodeTileAt(tile)
-    local sfx = explodesound:clone()
-    sfx:setPitch(math.random(80, 120) / 100)
-    sfx:play()
+    playsound(explodesound, 80, 120)
     glitch:setLooping(true)
-    glitch:play()
+    if sfx then
+        glitch:play()
+    end
     local tx = (tile - 1) % TILES_PER_ROW
     local ty = math.floor((tile - 1) / TILES_PER_ROW)
 
@@ -714,13 +810,9 @@ function digOrFlag(mx, my, button)
                     flags[tileId] = not flags[tileId]
                     if not flags[tileId] then
                         newParticle(tx * TSIZE + 8, ty * TSIZE + 8, flagTile)
-                        local sfx = unflagsound:clone()
-                        sfx:setPitch(math.random(80, 120) / 100)
-                        sfx:play()
+                        playsound(unflagsound, 80, 120)
                     else
-                        local sfx = flagsound:clone()
-                        sfx:setPitch(math.random(80, 120) / 100)
-                        sfx:play()
+                        playsound(flagsound, 80, 120)
                     end
                 end
             else
@@ -743,8 +835,7 @@ function digOrFlag(mx, my, button)
                     newBoard = false
                     playDigSound()
                     if hints[tileId] > 0 and hints[tileId] < 9 then
-                        local sfx = hintsounds[hints[tileId]]:clone()
-                        sfx:play()
+                        playsound(hintsounds[hints[tileId]], 100, 100)
                     end
                 elseif boardDepth[tileId] == 1 and hints[tileId] >= 1 and hints[tileId] < 9 then
                     -- chord: if enough flags are placed around a revealed hint tile, reveal all unflagged covered neighbors
@@ -792,8 +883,7 @@ function digOrFlag(mx, my, button)
                         if highestSound > -1 then
                             playDigSound()
                             if highestSound > 0 then
-                                local sfx = hintsounds[highestSound]:clone()
-                                sfx:play()
+                                playsound(hintsounds[highestSound], 100, 100)
                             end
                         end
                     end
@@ -805,12 +895,16 @@ end
 
 function playDigSound()
     if (digShakeCount > 2) then
-        local sfx = bigdigsound:clone()
-        sfx:setPitch(math.random(80, 120) / 100)
-        sfx:play()
+        playsound(bigdigsound, 80, 120)
     else
-        local sfx = digsound:clone()
-        sfx:setPitch(math.random(80, 120) / 100)
+        playsound(digsound, 80, 120)
+    end
+end
+
+function playsound(sound, minPitch, maxPitch)
+    if sfx then
+        local sfx = sound:clone()
+        sfx:setPitch(math.random(minPitch, maxPitch) / 100)
         sfx:play()
     end
 end

@@ -7,6 +7,13 @@ local TSIZE = 16
 local TILES_PER_ROW = 18
 local CANVAS_PIXELS = TSIZE * TILES_PER_ROW
 local mineDensity = 18
+local mineCount = 0
+local flagCount = 0
+local timeStarted
+local clock
+local face = 1
+local faceGaspTime = 0
+local boop = 0
 local mines = {}
 local flags = {}
 local hints = {}
@@ -25,11 +32,13 @@ local gameEndState = "menu"
 local bannerSoundPlayed = false
 local photosensitive = true
 local sfx = true
+local showUI = true
 
 function love.load()
     math.randomseed(os.time())
     love.graphics.setDefaultFilter('nearest', 'nearest')
     gameCanvas = love.graphics.newCanvas(CANVAS_PIXELS, CANVAS_PIXELS)
+    uiCanvas = love.graphics.newCanvas(CANVAS_PIXELS + TSIZE * 12, CANVAS_PIXELS)
     staticCanvas = love.graphics.newCanvas(CANVAS_PIXELS, CANVAS_PIXELS)
     -- Load the static effect shader
     staticShader = love.graphics.newShader('assets/static.glsl')
@@ -145,6 +154,34 @@ function love.load()
 
     logo = love.graphics.newQuad(0, 0, 180, 76, logoimg:getDimensions())
 
+    sevsegorigin = {TSIZE * 8, TSIZE * 5}
+    sevsegs = {love.graphics.newQuad(sevsegorigin[1], sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 2, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 3, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 4, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 5, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 6, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 7, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 8, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 9, sevsegorigin[2], 12, 21, tileset:getDimensions()),
+               love.graphics.newQuad(sevsegorigin[1] + 12 * 12, sevsegorigin[2], 12, 21, tileset:getDimensions())}
+    flagseg = love.graphics.newQuad(sevsegorigin[1] + 12 * 10, sevsegorigin[2], 12, 21, tileset:getDimensions())
+    timeseg = love.graphics.newQuad(sevsegorigin[1] + 12 * 11, sevsegorigin[2], 12, 21, tileset:getDimensions())
+
+    faces = {love.graphics.newQuad(TSIZE * 8, TSIZE * 7, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 10, TSIZE * 7, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 12, TSIZE * 7, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 14, TSIZE * 7, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 8, TSIZE * 9, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 10, TSIZE * 9, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 12, TSIZE * 9, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 14, TSIZE * 9, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 5, TSIZE * 0, 32, 32, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 8, TSIZE * 11, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 10, TSIZE * 11, 24, 24, tileset:getDimensions()),
+             love.graphics.newQuad(TSIZE * 12, TSIZE * 11, 24, 24, tileset:getDimensions())}
+
     local windowW, windowH = love.graphics.getDimensions()
     scale = math.min(math.floor(windowW / CANVAS_PIXELS), math.floor(windowH / CANVAS_PIXELS))
     if scale < 1 then
@@ -180,17 +217,79 @@ function love.resize(w, h)
     if scale < 1 then
         scale = 1
     end
+    showUI = w / (scale * 288) >= 5 / 3
 end
 
 function love.draw()
-    -- First render the static effect to its own canvas
-    love.graphics.setCanvas(staticCanvas)
-    love.graphics.clear()
-    love.graphics.setShader(staticShader)
-    staticShader:send('time', love.timer.getTime())
-    love.graphics.setColor(1, 1, 1, 0.2) -- Subtle static
-    love.graphics.rectangle('fill', 0, 0, CANVAS_PIXELS, CANVAS_PIXELS)
-    love.graphics.setShader()
+    love.graphics.clear(0.06, 0.07, 0.11)
+    love.graphics.setCanvas(uiCanvas)
+    love.graphics.clear(0.06, 0.07, 0.11)
+    local mineCounter = mineCount - flagCount
+    if newBoard then
+        mineCounter = -1
+    end
+    if mineCounter > 99 then
+        love.graphics.draw(tileset, sevsegs[math.floor(mineCounter / 100) + 1], 24, 16)
+    else
+        love.graphics.draw(tileset, sevsegs[11], 24, 16)
+    end
+    if mineCounter > 9 then
+        love.graphics.draw(tileset, sevsegs[math.floor((mineCounter % 100) / 10) + 1], 36, 16)
+    else
+        love.graphics.draw(tileset, sevsegs[11], 36, 16)
+    end
+    if mineCounter > -1 then
+        love.graphics.draw(tileset, sevsegs[mineCounter % 10 + 1], 48, 16)
+    else
+        love.graphics.draw(tileset, sevsegs[11], 48, 16)
+    end
+    love.graphics.draw(tileset, flagseg, 60, 16)
+
+    if gameEndState == "playing" then
+        clock = math.min(math.floor(love.timer.getTime() - timeStarted), 999)
+    end
+    if newBoard then
+        clock = -1
+    end
+    if clock > 99 then
+        love.graphics.draw(tileset, sevsegs[math.floor(clock / 100) + 1], 24, 64)
+    else
+        love.graphics.draw(tileset, sevsegs[11], 24, 64)
+    end
+    if clock > 9 then
+        love.graphics.draw(tileset, sevsegs[math.floor((clock % 100) / 10) + 1], 36, 64)
+    else
+        love.graphics.draw(tileset, sevsegs[11], 36, 64)
+    end
+    if clock > -1 then
+        love.graphics.draw(tileset, sevsegs[clock % 10 + 1], 48, 64)
+    else
+        love.graphics.draw(tileset, sevsegs[11], 48, 64)
+    end
+    love.graphics.draw(tileset, timeseg, 60, 64)
+
+    if gameEndState == "won" then
+        face = 4 + (4 * (math.floor(love.timer.getTime() * 2) % 2))
+    elseif gameEndState == "lost" then
+        face = 3 + (4 * (math.floor(love.timer.getTime() * 5) % 2))
+    elseif love.timer.getTime() - boop > 10 then
+        face = 11 + math.floor(love.timer.getTime()) % 2
+    elseif love.timer.getTime() - faceGaspTime > 0 and love.timer.getTime() - faceGaspTime < 1 then
+        if love.timer.getTime() - faceGaspTime < 0.1 then
+            face = 6
+        else
+            face = 2
+        end
+    else
+        if math.floor(love.timer.getTime() * 10) % 20 == 7 then
+            face = 5
+        else
+            face = 1
+        end
+    end
+
+    love.graphics.draw(tileset, faces[9], 416, 16)
+    love.graphics.draw(tileset, faces[face], 444, 20, 0, -1, 1)
 
     -- render to the game canvas
     love.graphics.setCanvas(gameCanvas)
@@ -396,6 +495,9 @@ function love.draw()
     local x = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
     local y = math.floor((windowH - (CANVAS_PIXELS * scale)) / 2)
     -- apply shake offsets when drawing canvas to screen
+    if (showUI) then
+        love.graphics.draw(uiCanvas, x - TSIZE * 6 * scale, y, 0, scale, scale)
+    end
     love.graphics.draw(gameCanvas, x + shakeX, y + shakeY, 0, scale, scale)
 end
 
@@ -468,6 +570,7 @@ function love.update(dt)
 end
 
 function love.keypressed(key)
+    boop = love.timer.getTime()
     if gameEndState == "menu" then
         gameEndState = "playing"
         gameActive = true
@@ -507,6 +610,7 @@ function love.keypressed(key)
 end
 
 function love.mousepressed(mx, my, button)
+    boop = love.timer.getTime()
     if gameEndState == "menu" then
         local windowW, windowH = love.graphics.getDimensions()
         local screenX = math.floor((windowW - (CANVAS_PIXELS * scale)) / 2)
@@ -553,11 +657,14 @@ end
 function makeBoard()
     newBoard = true
     blankHints = 0
+    mineCount = 0
+    timeStarted = love.timer.getTime()
     mines = {}
     hints = {}
     for ty = 0, TILES_PER_ROW * TILES_PER_ROW - 1 do
         if (math.random() < mineDensity / 100) then
             table.insert(mines, true)
+            mineCount = mineCount + 1
         else
             table.insert(mines, false)
         end
@@ -617,7 +724,8 @@ function boardFlood()
                                         local fy = math.floor((nIndex - 1) / TILES_PER_ROW)
                                         newParticle(fx * TSIZE + TSIZE / 2, fy * TSIZE + TSIZE / 2, flagTile)
                                         flags[nIndex] = false
-                                        playsound(unfagsound, 80, 120)
+                                        playsound(unflagsound, 80, 120)
+                                        flagCount = flagCount - 1
                                     end
                                     break
                                 end
@@ -692,6 +800,7 @@ function handleScreenShake()
 end
 
 function knockOffFlags()
+    flagCount = 0
     for i = 1, #flags do
         if flags[i] then
             local fx = (i - 1) % TILES_PER_ROW
@@ -807,17 +916,21 @@ function digOrFlag(mx, my, button)
             if button ~= 1 then
                 if boardDepth[tileId] == 2 then -- Allow flagging even on new board
                     -- flag
-                    flags[tileId] = not flags[tileId]
-                    if not flags[tileId] then
+                    if flags[tileId] then
                         newParticle(tx * TSIZE + 8, ty * TSIZE + 8, flagTile)
                         playsound(unflagsound, 80, 120)
-                    else
+                        flagCount = flagCount - 1
+                        flags[tileId] = not flags[tileId]
+                    elseif mineCount - flagCount > 0 then
                         playsound(flagsound, 80, 120)
+                        flagCount = flagCount + 1
+                        flags[tileId] = not flags[tileId]
                     end
                 end
             else
                 -- dig
                 if not flags[tileId] and boardDepth[tileId] == 2 then
+                    faceGaspTime = love.timer.getTime()
                     if newBoard then
                         knockOffFlags() -- Knock off all flags on first dig
                         while digShakeCount == 0 do
@@ -838,6 +951,7 @@ function digOrFlag(mx, my, button)
                         playsound(hintsounds[hints[tileId]], 100, 100)
                     end
                 elseif boardDepth[tileId] == 1 and hints[tileId] >= 1 and hints[tileId] < 9 then
+                    faceGaspTime = love.timer.getTime()
                     -- chord: if enough flags are placed around a revealed hint tile, reveal all unflagged covered neighbors
                     local needed = hints[tileId]
                     local flagCount = 0
